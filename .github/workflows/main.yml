@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - ga_script_final_task
   workflow_dispatch:
 
 jobs:
@@ -12,6 +13,7 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: praktikumcpp/practicum_cpp_backend:latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -19,9 +21,8 @@ jobs:
       - name: Load tests
         uses: actions/checkout@v2
         with:
-          repository: cpppracticum/cpp-backend-tests-practicum
+          repository:  cpppracticum/cpp-backend-tests-practicum
           path: 'cpp-backend-tests-practicum'
-
 
       - name: Install dependencies
         run: |
@@ -35,12 +36,12 @@ jobs:
           conan install ..
           cmake -D CMAKE_CXX_COMPILER=/usr/bin/g++-11 ..
           cmake --build .
- 
+
       - name: run tests sprint1 sync_server
         run: pytest --junitxml=results.xml cpp-backend-tests-practicum/tests/test_l02_hello_beast.py
         env:
           DELIVERY_APP: ${{ github.workspace }}/sprint1/problems/sync_server/solution/build/bin/hello
-          CONFIG_PATH: 
+          CONFIG_PATH:
 
       - name: build tests sprint1 restaurant_single_threaded
         run: |
@@ -79,7 +80,7 @@ jobs:
         run: pytest --junitxml=results.xml cpp-backend-tests-practicum/tests/test_l03_hello_async.py
         env:
           DELIVERY_APP: ${{ github.workspace }}/sprint1/problems/async_server/solution/build/bin/hello_async
-          CONFIG_PATH: 
+          CONFIG_PATH:
 
       - name: build tests sprint1 map_json
         run: |
@@ -96,6 +97,48 @@ jobs:
           DELIVERY_APP: ${{ github.workspace }}/sprint1/problems/map_json/solution/build/bin/game_server
           CONFIG_PATH: ${{ github.workspace }}/sprint1/problems/map_json/solution/data/config.json
 
+  final_task:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Load tests
+        uses: actions/checkout@v2
+        with:
+          repository: erzyadev/cpp-backend-tests-practicum
+          ref: sprint1_final_task_tests
+          path: 'cpp-backend-tests-practicum'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          echo "CONAN PROFILES"
+          conan profile list
+          conan profile new --detect default
+          echo "CONAN PROFILES UPDATE"
+          conan profile update settings.compiler.version=11 default
+
+      - name: build tests sprint1 final_task
+        run: |
+          cd sprint1/problems/final_task/solution
+          docker build -t my_http_server .
+
+      - name: run tests sprint1 final_task
+        run: |
+          printf "#!/bin/sh\ndocker run --rm -p 8080:8080 my_http_server" > sprint1/problems/final_task/solution/run_docker.sh
+          sudo chmod +x sprint1/problems/final_task/solution/run_docker.sh
+          pytest --junitxml=results.xml cpp-backend-tests-practicum/tests/test_l05_final_task.py
+          rm sprint1/problems/final_task/solution/run_docker.sh
+        env:
+          DELIVERY_APP: ${{ github.workspace }}/sprint1/problems/final_task/solution/run_docker.sh
+          CONFIG_PATH:
+
+  publish:
+    runs-on: ubuntu-22.04
+    needs: [ tests, final_task ]
+    steps:
       - name: Publish XML reports
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
