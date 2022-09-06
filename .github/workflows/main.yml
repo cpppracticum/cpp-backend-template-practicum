@@ -21,7 +21,8 @@ jobs:
       - name: Load tests
         uses: actions/checkout@v2
         with:
-          repository:  cpppracticum/cpp-backend-tests-practicum
+          repository: erzyadev/cpp-backend-tests-practicum
+          ref: sprint1_final_task_tests
           path: 'cpp-backend-tests-practicum'
 
       - name: Install dependencies
@@ -97,6 +98,12 @@ jobs:
           DELIVERY_APP: ${{ github.workspace }}/sprint1/problems/map_json/solution/build/bin/game_server
           CONFIG_PATH: ${{ github.workspace }}/sprint1/problems/map_json/solution/data/config.json
 
+      - name: Publish XML reports
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: ./*.xml
+
   final_task:
     runs-on: ubuntu-22.04
     steps:
@@ -135,10 +142,6 @@ jobs:
           DELIVERY_APP: ${{ github.workspace }}/sprint1/problems/final_task/solution/run_docker.sh
           CONFIG_PATH:
 
-  publish:
-    runs-on: ubuntu-22.04
-    needs: [ tests, final_task ]
-    steps:
       - name: Publish XML reports
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
